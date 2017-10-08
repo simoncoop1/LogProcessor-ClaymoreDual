@@ -36,7 +36,7 @@ $xmlstr = <<<XML
 </movies>
 XML;
 
-define("LOG_NAME","1507416904_log.txt");
+define("LOG_NAME","1507357879_log.txt");
 define("OFF_PEAK_RATE",0.07182); //unit kw/h
 define("NORMAL_RATE",0.13083); //unit kw/h
 define("POWER_CONSUMP",300.0); // unit w
@@ -52,124 +52,160 @@ for($i=0; $i < count($files);$i++){
 		array_push($logs,$files[$i]);
 	}
 		
- }
+}
 //print_r($logs);
 
-//get timestamp from log name
-$logName = GetTimeStamp(LOG_NAME);
+$results = []; //array of log file result
 
-//create file resource handler
-$handle = fopen(LOGS_DIR ."1507416904_log.txt", "r");
-
-if($handle == false){
-	echo "fail\n";
-}
-else{
-	echo "success\n";
+foreach($logs as $item){
+	$aLog = Process($item);
+	array_push($results,$aLog);
 }
 
-$line1 = fgets($handle);
-$prevLineHour = -1;
-$prevLine = null;
-$days = 0;
-$line = null;
+//$aLog = Process(LOG_NAME);
+//array_push($results,$aLog);
+sum($results);
 
 
-while(($line = fgets($handle)) != false ){	
+function sum($results){
 	
-	//fix for blank lines in log
-	if($line == "\n"||$line == "\r\n"){
-		continue;
+	$total = 0;
+	
+	foreach($results as $item){
+		$total = $total + $item->PriceNormal + $item->priceOffPeak;
 	}
 	
-	//fix for lines without timestamp
-	if(is_numeric(substr($line,0,2)) == false){
-		continue;
-	}
+	echo "\n--------------------------------\nThe result is:£$total\n-------------------------\n";
 	
-	$lineHour = intVal(substr($line,0,2));
-	
-	
-	//echo substr($line,0,2)."\n";
 
-	
-	if($lineHour < $prevLineHour){
-		//echo "$lineHour	$prevLineHour	\n";
-		$days++;
-	}
-	
-	$prevLineHour = $lineHour;
-	$prevLine = $line;
+	return $total;
 }
-
-$line = $prevLine;
-
-echo "$line	days:$days\n";
-
-$pos = strpos($line,"\t");
-
-$atime  = substr($line,0,$pos);
-
-$tStamp1 = strtotime("23.55.04.726");
-
-$tStamp2 = strtotime("07.41.35.038");
-
-date_default_timezone_set('Europe/London');
-$tStamp3 = date("c",1507416904);
-
-$tStamp4 = date('Y-m-d',1507416904);
-
-$tStamp5 = date('Y-m-d H:i:s',1507416904);
-
-
-$tStampNum = strtotime($tStamp4);
-
-$tStampNumPlusDays = (60*60*24*$days)+$tStampNum;
-
-$timeArray = explode(":",$atime);
-$eofStamp = strtotime("$timeArray[0].$timeArray[1].$timeArray[2].$timeArray[3]",$tStampNumPlusDays);
-$eofStr = date("c",$eofStamp);
-
-echo "\neofStamp:$eofStamp\n";
-
-echo "$tStamp3 then $eofStr\n";
-
-echo "1507416904 then start of day is $tStampNum";
-
-echo "\n$tStamp1	$tStamp2  $tStamp3 $tStamp4\n";
-
-
-$dTStart = new DateTime();
-$dTStart->setTimestamp(1507416904);
-$dTStart->setTimezone(new DateTimeZone('Europe/London'));
-$dTEnd = new DateTime();
-$dTEnd->setTimestamp($eofStamp);
-$dTEnd->setTimezone(new DateTimeZone('Europe/London'));
-$interval = $dTStart->diff($dTEnd);
-echo $interval->format('%h hours %i mins %s seconds')."\n";
-
-//find how much proportion off-peak
-$propOfPeak = ProportionOffPeak($dTStart,$dTEnd);
-echo "$propOfPeak\n";
-
-//the duration in hours
-$duration = $dTEnd->getTimestamp() - $dTStart->getTimestamp();
-//$duration = $duration /60 / 60;
-$kwhQty = $duration / SECONDS_FOR_1_KWH;
-$kwhQtyOffpeak = $propOfPeak * $kwhQty;
-$kwhQtyNormal = $kwhQty - $kwhQtyOffpeak;
-$priceOffPeak = $kwhQtyOffpeak * OFF_PEAK_RATE;
-$priceNormal = $kwhQtyNormal * NORMAL_RATE;
-echo "\nduration:$duration\n offpeak:$priceOffPeak	normal:$priceNormal";
-
-
-
-//close file resource handler
-fclose($handle);
 
 function Process($file){
 	
+	//get timestamp from log name
+	$logTimestamp = GetTimeStamp($file);
+	echo "\nlogTimestamp:$logTimestamp\n";
+
+	//create file resource handler
+	$handle = fopen(LOGS_DIR . $file, "r");
+
+	if($handle == false){
+		echo "fail\n";
+	}
+	else{
+		echo "success\n";
+	}
+
+	$line1 = fgets($handle);
+	$prevLineHour = -1;
+	$prevLine = null;
+	$days = 0;
+	$line = null;
+
+
+	while(($line = fgets($handle)) != false ){	
+		
+		//fix for blank lines in log
+		if($line == "\n"||$line == "\r\n"){
+			continue;
+		}
+		
+		//fix for lines without timestamp
+		if(is_numeric(substr($line,0,2)) == false){
+			continue;
+		}
+		
+		$lineHour = intVal(substr($line,0,2));
+		
+		
+		//echo substr($line,0,2)."\n";
+
+		
+		if($lineHour < $prevLineHour){
+			//echo "$lineHour	$prevLineHour	\n";
+			$days++;
+		}
+		
+		$prevLineHour = $lineHour;
+		$prevLine = $line;
+	}
+
+	$line = $prevLine;
+
+	echo "$line	days:$days\n";
+
+	$pos = strpos($line,"\t");
+
+	$atime  = substr($line,0,$pos);
+
+	$tStamp1 = strtotime("23.55.04.726");
+
+	$tStamp2 = strtotime("07.41.35.038");
+
+	date_default_timezone_set('Europe/London');
+	$tStamp3 = date("c",$logTimestamp);
+
+	$tStamp4 = date('Y-m-d',$logTimestamp);
+
+	$tStamp5 = date('Y-m-d H:i:s',$logTimestamp);
+
+
+	$tStampNum = strtotime($tStamp4);
+
+	$tStampNumPlusDays = (60*60*24*$days)+$tStampNum;
+
+	$timeArray = explode(":",$atime);
+	$eofStamp = strtotime("$timeArray[0].$timeArray[1].$timeArray[2].$timeArray[3]",$tStampNumPlusDays);
+	$eofStr = date("c",$eofStamp);
+
+	echo "\neofStamp:$eofStamp\n";
+
+	echo "$tStamp3 then $eofStr\n";
+
+	echo "$logTimestamp then start of day is $tStampNum";
+
+	echo "\n$tStamp1	$tStamp2  $tStamp3 $tStamp4\n";
+
+
+	$dTStart = new DateTime();
+	$dTStart->setTimestamp($logTimestamp);
+	$dTStart->setTimezone(new DateTimeZone('Europe/London'));
+	$dTEnd = new DateTime();
+	$dTEnd->setTimestamp($eofStamp);
+	$dTEnd->setTimezone(new DateTimeZone('Europe/London'));
+	$interval = $dTStart->diff($dTEnd);
+	echo $interval->format('%h hours %i mins %s seconds')."\n";
+
+	//find how much proportion off-peak
+	$propOfPeak = ProportionOffPeak($dTStart,$dTEnd);
+	echo "$propOfPeak\n";
+
+	//the duration in hours
+	$duration = $dTEnd->getTimestamp() - $dTStart->getTimestamp();
+	//$duration = $duration /60 / 60;
+	$kwhQty = $duration / SECONDS_FOR_1_KWH;
+	$kwhQtyOffpeak = $propOfPeak * $kwhQty;
+	$kwhQtyNormal = $kwhQty - $kwhQtyOffpeak;
+	$priceOffPeak = $kwhQtyOffpeak * OFF_PEAK_RATE;
+	$priceNormal = $kwhQtyNormal * NORMAL_RATE;
+	echo "file:$file";
+	echo "\nduration:$duration\n--------------offpeak:$priceOffPeak	normal:$priceNormal \n";
+
+	//close file resource handler
+	fclose($handle);
+
+	$alog = new ResultALog();
+	$alog->start = $dTStart;
+	$alog->end = $dTEnd;
+	$alog->propOffPeak = $propOfPeak;
+	$alog->priceOffPeak = $priceOffPeak;
+	$alog->PriceNormal = $priceNormal;
+	$alog->logFName = $file;
+	
+		
 	//return File Result
+	return $alog;
 }
 
 function IsDayLightSavings($dateTime){
