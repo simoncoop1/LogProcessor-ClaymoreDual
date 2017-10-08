@@ -1,2 +1,2 @@
-# LogProcessor-ClaymoreDual
-ProcessLogs from the ClaymoreDual Miner with the aim to calculate the price of electricity used.
+# LogProcessor for Claymore Dual Miner
+ProcessLogs from the Claymore Dual Miner with the aim to calculate the price of electricity used.
