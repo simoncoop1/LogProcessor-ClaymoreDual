@@ -42,7 +42,7 @@ define("NORMAL_RATE",0.13083); //unit kw/h
 define("POWER_CONSUMP",300.0); // unit w
 define("SECONDS_FOR_1_KWH",12000); //unit seconds
 
-define("LOGS_DIR","C:\\Users\\simon\\Desktop\\Claymore's Dual Ethereum+Decred_Siacoin_Lbry_Pascal AMD+NVIDIA GPU Miner v10.0\\toProcess\\");
+define("LOGS_DIR","C:\\Users\\simon\\Desktop\\Claymore's Dual Ethereum+Decred_Siacoin_Lbry_Pascal AMD+NVIDIA GPU Miner v10.0\\");
 
 //get list of log files
 $files = scandir( LOGS_DIR);
@@ -76,7 +76,6 @@ function sum($results){
 	}
 	
 	echo "\n--------------------------------\nThe result is:£$total\n-------------------------\n";
-	
 
 	return $total;
 }
@@ -111,16 +110,12 @@ function Process($file){
 			continue;
 		}
 		
-		//fix for lines without timestamp
+		//fix - skip lines without timestamp
 		if(is_numeric(substr($line,0,2)) == false){
 			continue;
 		}
 		
-		$lineHour = intVal(substr($line,0,2));
-		
-		
-		//echo substr($line,0,2)."\n";
-
+		$lineHour = intVal(substr($line,0,2));		
 		
 		if($lineHour < $prevLineHour){
 			//echo "$lineHour	$prevLineHour	\n";
@@ -133,40 +128,46 @@ function Process($file){
 
 	$line = $prevLine;
 
-	echo "$line	days:$days\n";
+	echo "$line\ndays:$days\n";
 
 	$pos = strpos($line,"\t");
-
 	$atime  = substr($line,0,$pos);
 
-	$tStamp1 = strtotime("23.55.04.726");
+	//$tStamp1 = strtotime("23.55.04.726");
 
-	$tStamp2 = strtotime("07.41.35.038");
+	//$tStamp2 = strtotime("07.41.35.038");
 
 	date_default_timezone_set('Europe/London');
 	$tStamp3 = date("c",$logTimestamp);
 
 	$tStamp4 = date('Y-m-d',$logTimestamp);
 
-	$tStamp5 = date('Y-m-d H:i:s',$logTimestamp);
-
+	//$tStamp5 = date('Y-m-d H:i:s',$logTimestamp);
 
 	$tStampNum = strtotime($tStamp4);
 
-	$tStampNumPlusDays = (60*60*24*$days)+$tStampNum;
-
+	//bug because end of BST has 25 hour day
+	//$tNextDay = (60*60*24*$days)+$tStampNum;
+	
+	$tNextDayDT = new DateTime();
+	$tNextDayDT->setTimestamp($tStampNum);
+	$tNextDayDT->setTimezone(new DateTimeZone('Europe/London'));
+	$tNextDayDT->add(new DateInterval('P'. $days . 'D'));
+	
 	$timeArray = explode(":",$atime);
-	$eofStamp = strtotime("$timeArray[0].$timeArray[1].$timeArray[2].$timeArray[3]",$tStampNumPlusDays);
+	$eofStamp = strtotime("$timeArray[0].$timeArray[1].$timeArray[2].$timeArray[3]",$tNextDayDT->getTimestamp());
+	
 	$eofStr = date("c",$eofStamp);
 
-	echo "\neofStamp:$eofStamp\n";
+	echo "eofStamp:$eofStamp\n";
 
 	echo "$tStamp3 then $eofStr\n";
 
 	echo "$logTimestamp then start of day is $tStampNum";
-
-	echo "\n$tStamp1	$tStamp2  $tStamp3 $tStamp4\n";
-
+	
+	echo "timearray:$atime\n";
+	
+	echo "tstamp4:$tStamp4\n";
 
 	$dTStart = new DateTime();
 	$dTStart->setTimestamp($logTimestamp);
@@ -201,8 +202,7 @@ function Process($file){
 	$alog->propOffPeak = $propOfPeak;
 	$alog->priceOffPeak = $priceOffPeak;
 	$alog->PriceNormal = $priceNormal;
-	$alog->logFName = $file;
-	
+	$alog->logFName = $file;	
 		
 	//return File Result
 	return $alog;
@@ -214,7 +214,7 @@ function IsDayLightSavings($dateTime){
 }
 
 function IsOffPeak($dateTime){
-	if(IsDayLightSavings($dateTime)){
+	if(IsDayLightSavings($dateTime)){		
 		$hour = intVal($dateTime->format("G"));
 		if($hour < 7){
 			return true;
@@ -284,8 +284,6 @@ class ResultALog
 	
 	function __construct(){		
 	}
-
-	//new DateTime("2015-11-01 00:00:00"
 
     // method declaration
     public function displayVar() {
