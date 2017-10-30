@@ -132,58 +132,35 @@ function Process($file){
 
 	$pos = strpos($line,"\t");
 	$atime  = substr($line,0,$pos);
+	$timeArray = explode(":",$atime);
 
 	//$tStamp1 = strtotime("23.55.04.726");
-
-	//$tStamp2 = strtotime("07.41.35.038");
-
-	date_default_timezone_set('Europe/London');
-	$tStamp3 = date("c",$logTimestamp);
-
-	$tStamp4 = date('Y-m-d',$logTimestamp);
-
-	//$tStamp5 = date('Y-m-d H:i:s',$logTimestamp);
-
-	$tStampNum = strtotime($tStamp4);
-
-	//bug because end of BST has 25 hour day
-	//$tNextDay = (60*60*24*$days)+$tStampNum;
 	
-	$tNextDayDT = new DateTime();
-	$tNextDayDT->setTimestamp($tStampNum);
-	$tNextDayDT->setTimezone(new DateTimeZone('Europe/London'));
-	$tNextDayDT->add(new DateInterval('P'. $days . 'D'));
+	date_default_timezone_set('Europe/London');//needed for procedural
 	
-	$timeArray = explode(":",$atime);
-	$eofStamp = strtotime("$timeArray[0].$timeArray[1].$timeArray[2].$timeArray[3]",$tNextDayDT->getTimestamp());
+	$startDateTime = new DateTime();
+	$startDateTime->setTimestamp($logTimestamp);
+	$startDateTime->setTimezone(new DateTimeZone('Europe/London'));
 	
-	$eofStr = date("c",$eofStamp);
-
-	echo "eofStamp:$eofStamp\n";
-
-	echo "$tStamp3 then $eofStr\n";
-
-	echo "$logTimestamp then start of day is $tStampNum";
+	$endDateTime = new DateTime();
+	$endDateTime->setTimestamp($logTimestamp);
+	$endDateTime->setTimezone(new DateTimeZone('Europe/London'));	
+	$endDateTime->modify("today");
+	$endDateTime->add(new DateInterval('P'. $days . 'D' ));
+	$endDateTime->setTime ( intval($timeArray[0]) , intval($timeArray[1]) ,intval($timeArray[2]), intval($timeArray[3])*1000 );	
+	//$endDateTime->setTimestamp(strtotime("$timeArray[0].$timeArray[1].$timeArray[2].$timeArray[3]", $endDateTime->getTimestamp()));
 	
-	echo "timearray:$atime\n";
+	echo $startDateTime->format("c") . " then " . $endDateTime->format("c") . "\n";
 	
-	echo "tstamp4:$tStamp4\n";
-
-	$dTStart = new DateTime();
-	$dTStart->setTimestamp($logTimestamp);
-	$dTStart->setTimezone(new DateTimeZone('Europe/London'));
-	$dTEnd = new DateTime();
-	$dTEnd->setTimestamp($eofStamp);
-	$dTEnd->setTimezone(new DateTimeZone('Europe/London'));
-	$interval = $dTStart->diff($dTEnd);
-	echo $interval->format('%h hours %i mins %s seconds')."\n";
-
+	$interval = $startDateTime->diff($endDateTime);
+	//echo $interval->format('%h hours %i mins %s seconds')."\n";
+	
 	//find how much proportion off-peak
-	$propOfPeak = ProportionOffPeak($dTStart,$dTEnd);
+	$propOfPeak = ProportionOffPeak($startDateTime,$endDateTime);
 	echo "$propOfPeak\n";
 
 	//the duration in hours
-	$duration = $dTEnd->getTimestamp() - $dTStart->getTimestamp();
+	$duration = $endDateTime->getTimestamp() - $startDateTime->getTimestamp();
 	//$duration = $duration /60 / 60;
 	$kwhQty = $duration / SECONDS_FOR_1_KWH;
 	$kwhQtyOffpeak = $propOfPeak * $kwhQty;
@@ -197,8 +174,8 @@ function Process($file){
 	fclose($handle);
 
 	$alog = new ResultALog();
-	$alog->start = $dTStart;
-	$alog->end = $dTEnd;
+	$alog->start = $startDateTime;
+	$alog->end = $endDateTime;
 	$alog->propOffPeak = $propOfPeak;
 	$alog->priceOffPeak = $priceOffPeak;
 	$alog->PriceNormal = $priceNormal;
